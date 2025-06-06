@@ -5,8 +5,8 @@ local group = vim.api.nvim_create_augroup("DeleteAssassinGroup", {})
 local namespace = vim.api.nvim_create_namespace('DeleteAssassin')
 local extmark_id = 502348
 
--- Function to save the cursor position before yanking
-local function pre_yank_motion()
+-- Function to save the cursor position before deleting
+local function pre_delete_motion()
     local cursor_position = vim.api.nvim_win_get_cursor(0)
 
     vim.api.nvim_buf_set_extmark(0, namespace, cursor_position[1] - 1, cursor_position[2],
@@ -16,8 +16,8 @@ local function pre_yank_motion()
         });
 end
 
--- Function to restore the cursor position after yanking
-local function post_yank_motion()
+-- Function to restore the cursor position after deleting
+local function post_delete_motion()
     locked = false
 
     local extmark_position = vim.api.nvim_buf_get_extmark_by_id(0, namespace, extmark_id, {})
@@ -29,7 +29,7 @@ local function setup_autocmds()
         group = group,
         callback = function()
             if not locked then
-                pre_yank_motion()
+                pre_delete_motion()
             end
         end,
     })
@@ -40,7 +40,7 @@ local function setup_autocmds()
             local new_mode = vim.api.nvim_get_mode().mode
 
             if new_mode == "n" and locked then
-                post_yank_motion()
+                post_delete_motion()
             end
         end,
     })
@@ -48,8 +48,7 @@ local function setup_autocmds()
     vim.api.nvim_create_autocmd("TextYankPost", {
         group = group,
         callback = function()
-            -- Only restore position after yanked with 'y' operator only
-            -- If not set, text yanked with c will also activate it
+            -- Only restore position after deleting with the 'd' or 'c' operator
             local operators = { "d", "c" }
             if vim.tbl_contains(operators, vim.v.event.operator) then
                 locked = true
