@@ -18,9 +18,10 @@ end
 
 -- Function to restore the cursor position after yanking
 local function post_yank_motion()
-    local extmark_position = vim.api.nvim_buf_get_extmark_by_id(0, namespace, extmark_id, {})
-    vim.api.nvim_win_set_cursor(0, { extmark_position[1] + 1, extmark_position[2] })
     locked = false
+
+    local extmark_position = vim.api.nvim_buf_get_extmark_by_id(0, namespace, extmark_id, {})
+    pcall(vim.api.nvim_win_set_cursor, 0, { extmark_position[1] + 1, extmark_position[2] })
 end
 
 local function setup_autocmds()
