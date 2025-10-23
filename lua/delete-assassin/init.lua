@@ -4,6 +4,17 @@ local locked = false
 local group = vim.api.nvim_create_augroup("DeleteAssassinGroup", {})
 local namespace = vim.api.nvim_create_namespace('DeleteAssassin')
 local extmark_id = 502348
+local default_options = {
+    assassinate_delete = true,
+    assassinate_change = true,
+}
+
+---@class delete-assassin.Options
+---@field assassinate_delete? boolean Whether or not to restore the cursor position after deleting text (`d` operator)
+---@field assassinate_change? boolean Whether or not to restore the cursor position after changing text (`c` operator)
+
+---@type delete-assassin.Options
+M.opts = default_options
 
 -- Function to save the cursor position before deleting
 local function pre_delete_motion()
@@ -24,7 +35,9 @@ local function post_delete_motion()
     pcall(vim.api.nvim_win_set_cursor, 0, { extmark_position[1] + 1, extmark_position[2] })
 end
 
-local function setup_autocmds()
+--- Setup the autocommands for saving and restoring the cursor position
+---@param opts delete-assassin.Options
+local function setup_autocmds(opts)
     vim.api.nvim_create_autocmd({ "VimEnter", "CursorMoved" }, {
         group = group,
         callback = function()
@@ -45,11 +58,18 @@ local function setup_autocmds()
         end,
     })
 
+    local operators = {}
+    if opts.assassinate_delete then
+        table.insert(operators, "d")
+    end
+    if opts.assassinate_change then
+        table.insert(operators, "c")
+    end
+
     vim.api.nvim_create_autocmd("TextYankPost", {
         group = group,
         callback = function()
-            -- Only restore position after deleting with the 'd' or 'c' operator
-            local operators = { "d", "c" }
+            -- Only restore position after using one of the enabled operators.
             if vim.tbl_contains(operators, vim.v.event.operator) then
                 locked = true
             end
@@ -57,9 +77,12 @@ local function setup_autocmds()
     })
 end
 
+---@param opts? delete-assassin.Options
 function M.setup(opts)
     opts = opts or {}
-    setup_autocmds()
+    opts = vim.tbl_deep_extend("keep", opts, M.opts)
+
+    setup_autocmds(opts)
 end
 
 return M
